@@ -151,3 +151,16 @@ test-results/
 # ==========================================
 .gitkeep
 
+# ==========================================
+# Documentation (exclude temporary .md files)
+# ==========================================
+# Keep docs/ folder markdown files
+# Exclude root-level documentation files
+/*.md
+!README.md
+!LICENSE.md
+!CONTRIBUTING.md
+# Exclude app-level temporary docs
+apps/**/*.md
+!apps/**/README.md
+
