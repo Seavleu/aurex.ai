@@ -1,0 +1,123 @@
+---
+description: Overall rule for the development
+alwaysApply: false
+---
+# AUREX.AI - Cursor Rules & Workflow
+
+**Purpose:** Define coding standards, AI-assisted development rules, and Agile workflow conventions for efficient implementation of the AUREX.AI project.
+
+---
+
+## 1. Folder & File Structure Conventions
+```
+
+apps/
+backend/       # FastAPI service and AI inference
+pipeline/      # Prefect workers, data ingestion, NLP scripts
+dashboard/     # Next.js UI
+packages/
+ai_core/       # FinBERT, NLP utilities, preprocessing
+db_core/       # Redis/Postgres handlers, ORM
+shared/        # Shared schemas, constants, logging utilities
+infra/
+docker-compose.yml
+init_db.sql
+
+```
+
+- Each folder corresponds to a deployable module or shared library.  
+- Use descriptive names for scripts, services, and tasks.
+
+---
+
+## 2. Branching & Git Rules
+- **Feature branch:** `feature/<short-description>`  
+- **Bug fix branch:** `fix/<short-description>`  
+- **Chore branch:** `chore/<infra-or-doc>`  
+- Always create Pull Requests (PR) against `main` after local testing.
+
+---
+
+## 3. Cursor AI Coding Rules
+- **Comment First → Generate Later:** Always add descriptive comments for each function or block to guide AI generation.  
+- **Type Hints & Docstrings:** All Python functions require type hints and docstrings.  
+- **Async First:** Use `async`/`await` in FastAPI and pipeline tasks where I/O is involved.  
+- **Environment Variables:** No hardcoded secrets; use `.env` or Railway/Vercel secrets.  
+- **Linting & Formatting:** Use `black` + `ruff` before committing.  
+- **Cache Integration:** Use Redis for frequently accessed data; AI can generate boilerplate for caching layers.
+
+---
+
+## 4. Task & Sprint Rules (Agile)
+- Two-week sprints; define backlog in Cursor or GitHub Projects.  
+- Each task corresponds to one Cursor PR for AI-assisted coding.  
+- Daily commits encouraged for AI pairing and iterative development.  
+- Review AI-generated code manually before merging.
+
+---
+
+## 5. Prefect & Pipeline Rules
+- Each Prefect flow must have:  
+  - Clear `@task` separation  
+  - Type annotations  
+  - Logging (`logger.info`)  
+- Batch inference preferred for speed.  
+- Save outputs to Redis (short-term) and PostgreSQL (long-term).  
+- Version pipelines with Git; use branch naming conventions for experimental flows.
+
+---
+
+## 6. API & Backend Rules
+- **Endpoints Naming:** RESTful conventions: `/sentiment/latest`, `/price/current`.  
+- **Return Schema:** JSON only; use Pydantic models for validation.  
+- **Caching:** Use TTLs: price 10s, sentiment 30s, news 5m.  
+- **Error Handling:** Return meaningful status codes and JSON messages.  
+- **Logging:** All requests and errors logged for debugging.
+
+---
+
+## 7. Frontend Rules
+- Next.js App Router only (v15).  
+- Component-first structure; keep charts and UI modular.  
+- Fetch API data through backend endpoints, not directly from data sources.  
+- TailwindCSS for layout and style consistency.  
+- Reuse components wherever possible; centralize constants in `shared`.
+
+---
+
+## 8. CI/CD & Deployment Rules
+- Auto-build on PR merge to `main`.  
+- Deploy backend (FastAPI + Redis + Postgres) on Railway free tier.  
+- Deploy frontend (Next.js) on Vercel free tier.  
+- Test all flows locally via Docker Compose before deploy.  
+
+---
+
+## 9. AI Assistance Guidelines
+- **Cursor AI Prompts:**
+```
+
+#cursor
+You are coding in AUREX-ai repo.
+Follow PEP8 and async best practices.
+Type hints and docstrings are required.
+Use Redis caching for frequently accessed data.
+Use environment variables for secrets.
+Follow Agile sprint conventions.
+
+```
+- **Review Output:** Always manually verify AI-generated code, especially ML logic.
+
+---
+
+## 10. Documentation Rules
+- Update `/docs` with PR: architecture, pipeline flow, database schema, API contracts.  
+- Keep PRD and System Architecture updated after each sprint.  
+- Inline code comments required for all AI-generated functions.
+
+---
+
+## Summary
+- **Folder structure, type hints, async-first, caching, docstrings, linting, branch rules, and Prefect best practices** are mandatory.  
+- Agile workflow + Cursor AI pairing ensures rapid, maintainable, and consistent development.  
+- CI/CD pipelines integrate AI-assisted development safely into production-grade free-tier deployments.

@@ -1,0 +1,145 @@
+version: '3.8'
+
+# AUREX.AI - Docker Compose Configuration
+# Development environment setup
+
+services:
+  # ==========================================
+  # PostgreSQL Database
+  # ==========================================
+  postgres:
+    image: timescale/timescaledb:latest-pg15
+    container_name: aurex-postgres
+    environment:
+      POSTGRES_USER: aurex
+      POSTGRES_PASSWORD: aurex_password
+      POSTGRES_DB: aurex_db
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aurex -d aurex_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - aurex-network
+    restart: unless-stopped
+
+  # ==========================================
+  # Redis Cache
+  # ==========================================
+  redis:
+    image: redis:7-alpine
+    container_name: aurex-redis
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - aurex-network
+    restart: unless-stopped
+
+  # ==========================================
+  # FastAPI Backend
+  # ==========================================
+  backend:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+    container_name: aurex-backend
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://aurex:aurex_password@postgres:5432/aurex_db
+      - REDIS_URL=redis://redis:6379/0
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - ENVIRONMENT=development
+      - LOG_LEVEL=INFO
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./apps/backend:/app/backend
+      - ./packages:/app/packages
+      - ./models:/app/models
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - aurex-network
+    restart: unless-stopped
+    command: uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # ==========================================
+  # Prefect Pipeline Worker
+  # ==========================================
+  pipeline:
+    build:
+      context: .
+      dockerfile: apps/pipeline/Dockerfile
+    container_name: aurex-pipeline
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://aurex:aurex_password@postgres:5432/aurex_db
+      - REDIS_URL=redis://redis:6379/0
+      - FINBERT_MODEL_NAME=ProsusAI/finbert
+      - DEVICE=cpu
+      - PREFECT_API_URL=http://prefect:4200/api
+    volumes:
+      - ./apps/pipeline:/app/pipeline
+      - ./packages:/app/packages
+      - ./models:/app/models
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - aurex-network
+    restart: unless-stopped
+
+  # ==========================================
+  # Prefect Server (Optional - for UI)
+  # ==========================================
+  prefect:
+    image: prefecthq/prefect:2-python3.11
+    container_name: aurex-prefect
+    environment:
+      - PREFECT_SERVER_API_HOST=0.0.0.0
+      - PREFECT_SERVER_API_PORT=4200
+      - PREFECT_API_DATABASE_CONNECTION_URL=postgresql+asyncpg://aurex:aurex_password@postgres:5432/aurex_db
+    ports:
+      - "4200:4200"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - aurex-network
+    command: prefect server start --host 0.0.0.0
+    restart: unless-stopped
+
+# ==========================================
+# Networks
+# ==========================================
+networks:
+  aurex-network:
+    driver: bridge
+
+# ==========================================
+# Volumes
+# ==========================================
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
