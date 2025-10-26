@@ -1,0 +1,52 @@
+# AUREX.AI - Prefect Deployment Configuration
+
+name: aurex-ai-pipeline
+
+# Prefect project settings
+prefect-version: 2.14.21
+
+# Build configuration
+build: null
+
+# Push configuration
+push: null
+
+# Pull configuration
+pull:
+  - prefect.deployments.steps.set_working_directory:
+      directory: /app
+
+# Deployments
+deployments:
+  # Gold Sentiment Pipeline - Runs every 5 minutes
+  - name: gold-sentiment-pipeline
+    version: 1.0.0
+    tags:
+      - production
+      - gold
+      - sentiment
+    description: |
+      End-to-end pipeline for gold price and sentiment analysis.
+      Fetches XAUUSD price, scrapes financial news, and analyzes sentiment.
+    entrypoint: apps/pipeline/flows/gold_sentiment_flow.py:gold_sentiment_pipeline
+    parameters:
+      hours_back: 24
+    work_pool:
+      name: default-agent-pool
+    schedule:
+      cron: "*/5 * * * *"  # Every 5 minutes
+      timezone: "UTC"
+
+  # Continuous Monitoring - Runs continuously
+  - name: continuous-monitoring
+    version: 1.0.0
+    tags:
+      - production
+      - monitoring
+    description: |
+      Continuous monitoring flow that runs the pipeline every 5 minutes.
+      Runs as a long-lived process.
+    entrypoint: apps/pipeline/flows/gold_sentiment_flow.py:continuous_monitoring
+    work_pool:
+      name: default-agent-pool
+

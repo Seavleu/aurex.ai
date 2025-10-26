@@ -1,0 +1,2 @@
+"""AUREX.AI - Backend Application."""
+

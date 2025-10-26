@@ -1,0 +1,45 @@
+# AUREX.AI - Minimal Dependencies for Initial Setup
+# Use this for Sprint 0 setup, full requirements for Sprint 1+
+
+# ==========================================
+# Core Web Framework
+# ==========================================
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+pydantic==2.5.3
+pydantic-settings==2.1.0
+
+# ==========================================
+# Database (Basic)
+# ==========================================
+sqlalchemy==2.0.25
+asyncpg==0.29.0
+psycopg2-binary==2.9.9
+alembic==1.13.1
+
+# ==========================================
+# Redis Cache
+# ==========================================
+redis==5.0.1
+
+# ==========================================
+# Code Quality & Testing
+# ==========================================
+pytest==7.4.4
+pytest-asyncio==0.23.3
+pytest-cov==4.1.0
+black==23.12.1
+ruff==0.1.11
+pre-commit==3.6.0
+
+# ==========================================
+# Utilities
+# ==========================================
+python-dotenv==1.0.0
+loguru==0.7.2
+httpx==0.26.0
+requests==2.31.0
+
+# Note: AI/ML libraries (torch, transformers, sentencepiece) will be
+# installed in Sprint 1 when we actually implement the sentiment analysis
+
