@@ -6,13 +6,26 @@ This is the main entry point for the Prefect pipeline worker.
 
 import asyncio
 import sys
+import os
 
 from loguru import logger
 
-from apps.pipeline.flows.gold_sentiment_flow import (
-    continuous_monitoring,
-    gold_sentiment_pipeline,
-)
+# Add project root to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
+try:
+    # Try local development path first
+    from apps.pipeline.flows.gold_sentiment_flow import (
+        continuous_monitoring,
+        gold_sentiment_pipeline,
+    )
+except ModuleNotFoundError:
+    # Inside Docker, the structure is /app/pipeline/
+    from pipeline.flows.gold_sentiment_flow import (
+        continuous_monitoring,
+        gold_sentiment_pipeline,
+    )
+
 from packages.shared.config import config
 from packages.shared.logging_config import setup_logging
 
