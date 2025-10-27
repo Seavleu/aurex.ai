@@ -1,0 +1,30 @@
+{
+  "mcpServers": {
+    "docker": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "-v",
+        "/var/run/docker.sock:/var/run/docker.sock",
+        "mcp/docker"
+      ],
+      "env": {
+        "DOCKER_HOST": "unix:///var/run/docker.sock"
+      }
+    },
+    "aurex-manager": {
+      "command": "python",
+      "args": [
+        "-m",
+        "scripts.mcp_docker_manager"
+      ],
+      "env": {
+        "PROJECT_ROOT": "${workspaceFolder}",
+        "COMPOSE_FILE": "${workspaceFolder}/docker-compose.yml"
+      }
+    }
+  }
+}
+
