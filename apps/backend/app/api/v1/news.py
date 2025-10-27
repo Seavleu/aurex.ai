@@ -70,7 +70,7 @@ async def get_recent_news(
 
             news_data = [
                 {
-                    "id": n.id,
+                    "id": str(n.id),  # Convert UUID to string
                     "url": n.url,
                     "title": n.title,
                     "content": n.content[:200] + "..." if n.content and len(n.content) > 200 else n.content,

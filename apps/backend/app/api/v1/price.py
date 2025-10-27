@@ -50,7 +50,7 @@ async def get_latest_price():
                 raise HTTPException(status_code=404, detail="No price data available")
 
             price_data = {
-                "id": price.id,
+                "id": str(price.id),  # Convert UUID to string
                 "timestamp": price.timestamp.isoformat(),
                 "symbol": price.symbol,
                 "open": float(price.open) if price.open is not None else 0.0,
@@ -129,7 +129,7 @@ async def get_price_history(
 
             price_data = [
                 {
-                    "id": p.id,
+                    "id": str(p.id),  # Convert UUID to string
                     "timestamp": p.timestamp.isoformat(),
                     "symbol": p.symbol,
                     "open": float(p.open) if p.open is not None else None,

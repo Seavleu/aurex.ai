@@ -89,7 +89,7 @@ async def get_alerts(
 
             alert_data = [
                 {
-                    "id": a.id,
+                    "id": str(a.id),  # Convert UUID to string
                     "timestamp": a.timestamp.isoformat(),
                     "type": a.type,
                     "severity": a.severity,
