@@ -1,15 +1,17 @@
 """
 AUREX.AI - News Fetcher Task.
 
-Fetches financial news from ForexFactory RSS feed and stores it in the database.
+Fetches financial news from NewsAPI and RSS feeds and stores it in the database.
 """
 
 import asyncio
-from datetime import datetime
+import os
+from datetime import datetime, timedelta
 from hashlib import md5
 
 import feedparser
 from loguru import logger
+from newsapi import NewsApiClient
 
 from packages.db_core.cache import cache_manager
 from packages.db_core.connection import db_manager
@@ -19,11 +21,15 @@ from packages.shared.constants import NEWS_SOURCE_FOREXFACTORY
 
 
 class NewsFetcher:
-    """Fetches and stores news articles from RSS feeds."""
+    """Fetches and stores news articles from NewsAPI and RSS feeds."""
 
     def __init__(self, rss_url: str | None = None) -> None:
         """Initialize news fetcher."""
-        # Try multiple sources for robustness
+        # NewsAPI configuration
+        self.newsapi_key = os.getenv("NEWSAPI_KEY", "7fb09c63f7d64edfa67acaf40e497218")
+        self.newsapi_client = NewsApiClient(api_key=self.newsapi_key) if self.newsapi_key else None
+        
+        # RSS fallback sources
         self.rss_urls = [
             rss_url if rss_url else config.FOREXFACTORY_RSS_URL,
             config.INVESTING_RSS_URL,
@@ -31,11 +37,89 @@ class NewsFetcher:
         ]
         self.cache_ttl = config.CACHE_TTL_NEWS
         self.seen_articles = set()  # For deduplication
-        logger.info(f"NewsFetcher initialized with {len(self.rss_urls)} RSS sources")
+        
+        if self.newsapi_client:
+            logger.info("NewsFetcher initialized with NewsAPI + RSS fallback sources")
+        else:
+            logger.info(f"NewsFetcher initialized with {len(self.rss_urls)} RSS sources only")
 
-    async def fetch_news(self) -> list[dict]:
+    async def fetch_from_newsapi(self) -> list[dict]:
         """
-        Fetch news from RSS feeds (tries multiple sources).
+        Fetch gold-related news from NewsAPI.
+
+        Returns:
+            list[dict]: List of news articles
+        """
+        if not self.newsapi_client:
+            logger.warning("NewsAPI client not initialized")
+            return []
+
+        try:
+            logger.info("Fetching gold news from NewsAPI...")
+            
+            # Search for gold-related articles from the last 24 hours
+            from_date = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
+            
+            # Run synchronous NewsAPI call in executor
+            loop = asyncio.get_event_loop()
+            response = await loop.run_in_executor(
+                None,
+                lambda: self.newsapi_client.get_everything(
+                    q='gold OR XAUUSD OR "gold spot" OR "gold prices"',
+                    language='en',
+                    from_param=from_date,
+                    sort_by='publishedAt',
+                    page_size=50
+                )
+            )
+            
+            articles = []
+            if response.get('status') == 'ok':
+                for article_data in response.get('articles', []):
+                    try:
+                        # Create unique ID for deduplication
+                        url = article_data.get('url', '')
+                        article_id = md5(url.encode()).hexdigest()
+
+                        if article_id in self.seen_articles:
+                            continue  # Skip duplicates
+
+                        # Parse timestamp
+                        published_at = article_data.get('publishedAt', '')
+                        try:
+                            timestamp = datetime.fromisoformat(published_at.replace('Z', '+00:00'))
+                        except:
+                            timestamp = datetime.utcnow()
+
+                        # Extract article data
+                        article = {
+                            "title": article_data.get('title', 'Untitled'),
+                            "url": url,
+                            "source": article_data.get('source', {}).get('name', 'NewsAPI'),
+                            "timestamp": timestamp,
+                            "content": (article_data.get('description') or article_data.get('content') or '')[:500],
+                        }
+
+                        articles.append(article)
+                        self.seen_articles.add(article_id)
+
+                    except Exception as e:
+                        logger.warning(f"Error parsing NewsAPI article: {e}")
+                        continue
+
+                logger.info(f"✅ Fetched {len(articles)} articles from NewsAPI")
+            else:
+                logger.warning(f"NewsAPI returned status: {response.get('status')}")
+            
+            return articles
+
+        except Exception as e:
+            logger.error(f"NewsAPI error: {e}")
+            return []
+
+    async def fetch_from_rss(self) -> list[dict]:
+        """
+        Fetch news from RSS feeds (fallback method).
 
         Returns:
             list[dict]: List of news articles
@@ -96,6 +180,28 @@ class NewsFetcher:
             except Exception as e:
                 logger.warning(f"Error with {rss_url}: {e}")
                 continue
+
+        return all_articles
+
+    async def fetch_news(self) -> list[dict]:
+        """
+        Fetch news from all sources (NewsAPI first, then RSS fallback).
+
+        Returns:
+            list[dict]: List of news articles
+        """
+        all_articles = []
+
+        # Try NewsAPI first (more reliable and structured)
+        if self.newsapi_client:
+            newsapi_articles = await self.fetch_from_newsapi()
+            all_articles.extend(newsapi_articles)
+
+        # If NewsAPI didn't get enough articles, use RSS feeds
+        if len(all_articles) < 10:
+            logger.info("Fetching additional articles from RSS feeds...")
+            rss_articles = await self.fetch_from_rss()
+            all_articles.extend(rss_articles)
 
         logger.info(f"Total fetched: {len(all_articles)} new articles")
         return all_articles

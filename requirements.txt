@@ -38,6 +38,7 @@ yfinance==0.2.35
 feedparser==6.0.11
 beautifulsoup4==4.12.3
 lxml==5.1.0
+newsapi-python==0.2.7
 
 prefect==2.14.21
 prefect-sqlalchemy==0.4.1
