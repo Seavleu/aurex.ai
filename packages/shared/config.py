@@ -8,6 +8,10 @@ import os
 from typing import Any
 
 from loguru import logger
+from dotenv import load_dotenv
+
+# Load .env file
+load_dotenv()
 
 
 class Config:
