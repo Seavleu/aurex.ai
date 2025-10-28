@@ -24,7 +24,7 @@ Base = declarative_base()
 # Database URL from environment
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql+asyncpg://aurex:aurex_password@localhost:5432/aurex_db",
+    "postgresql+asyncpg://aurex:aurex_password@postgres:5432/aurex_db",
 )
 
 # Sync database URL (for migrations)

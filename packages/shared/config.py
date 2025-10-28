@@ -31,7 +31,7 @@ class Config:
     # Database
     DATABASE_URL: str = os.getenv(
         "DATABASE_URL",
-        "postgresql+asyncpg://aurex:aurex_password@localhost:5432/aurex_db",
+        "postgresql+asyncpg://aurex:aurex_password@postgres:5432/aurex_db",
     )
     DATABASE_POOL_SIZE: int = int(os.getenv("DATABASE_POOL_SIZE", "20"))
     DATABASE_MAX_OVERFLOW: int = int(os.getenv("DATABASE_MAX_OVERFLOW", "0"))
